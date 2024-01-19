@@ -1,0 +1,166 @@
+datasource db {
+  provider     = "mysql"
+  relationMode = "prisma"
+  url          = env("DATABASE_URL")
+}
+
+generator kysely {
+  provider = "prisma-kysely"
+  output   = "./app/db/generated"
+}
+
+model User {
+  id            Int             @id @default(autoincrement())
+  createdAt     DateTime        @default(now())
+  username      String          @unique
+  Authenticator Authenticator[]
+  invitation    Invitation      @relation(fields: [invitationId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  invitationId  Int             @unique
+
+  resus     Resu[]
+  bookmarks Bookmark[]
+  threads   Thread[]
+
+  @@index([invitationId])
+}
+
+model Invitation {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  code      String
+  User      User?
+}
+
+model Authenticator {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  User      User     @relation(fields: [userId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  userId    Int
+
+  // https://remix.run/resources/remix-auth-webauthn-strategy#database
+  credentialID         String
+  credentialPublicKey  String
+  counter              BigInt
+  credentialDeviceType String
+  credentialBackedUp   Boolean
+  transports           String
+
+  @@index([userId])
+  @@index([credentialID])
+}
+
+/// ツイート的なやつ。文字数制限はとくにないと思う。それなりにリッチな表現をしたい
+model Resu {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  authorId Int
+  author   User @relation(fields: [authorId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+
+  /// Markdownかなんか
+  content String
+
+  /// 属するスレッド
+  collectionId Int?
+  collection   ResuCollection? @relation(fields: [collectionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  /// 既存レスを埋め込んで言及する感じ
+  quoteId  Int?
+  quote    Resu?  @relation("quote", fields: [quoteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  quotedBy Resu[] @relation("quote")
+
+  /// コレクションだけでなくレス自体もタグを貼れる
+  TagAttach TagAttach[]
+
+  @@index([authorId])
+  @@index([quoteId])
+  @@index([collectionId])
+}
+
+/// Webページそのものを指す
+model Bookmark {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  authorId Int
+  author   User @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  /// 空文字列の場合は表示側でURLから自動生成する
+  title String
+
+  /// URLで参照できないものはいまのところスコープ外。URLが変わったときはそっちに張り替え直すことを想定している
+  url String @unique
+
+  collection   ResuCollection @relation(fields: [collectionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  collectionId Int            @unique
+
+  tags TagAttach[]
+
+  @@index([authorId])
+}
+
+/// 素のスレッド
+model Thread {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  authorId Int
+  author   User @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  title String
+
+  collection   ResuCollection @relation(fields: [collectionId], references: [id])
+  collectionId Int            @unique
+  TagAttach    TagAttach[]
+
+  @@index([authorId])
+}
+
+/// 複数のResuが*時系列順で*並んだもの
+model ResuCollection {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  /// 属するレス
+  Resu Resu[]
+
+  // ヘッド
+  Thread   Thread?
+  Bookmark Bookmark?
+}
+
+model TagAttach {
+  id    Int @id @default(autoincrement())
+  tagId Int
+  tag   Tag @relation(fields: [tagId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  bookmarkId Int?
+  threadId   Int?
+  resuId     Int?
+  bookmark   Bookmark? @relation(fields: [bookmarkId], references: [id])
+  thread     Thread?   @relation(fields: [threadId], references: [id])
+  resu       Resu?     @relation(fields: [resuId], references: [id])
+
+  @@unique([tagId, threadId, bookmarkId, resuId])
+  @@index([bookmarkId])
+  @@index([threadId])
+  @@index([resuId])
+}
+
+/// tech/web/frontend/react みたいな感じで階層分けされて表現されるタグ
+model Tag {
+  id Int @id @default(autoincrement())
+
+  /// フルネームの一番最後のセクション、`tech/web/frontend/react` なら `react`
+  name String
+
+  /// ひとつ上の階層
+  /// tech/webならtech、techならnull
+  parentId Int?
+  parent   Tag?  @relation("tag", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  Children Tag[] @relation("tag")
+
+  TagAttach TagAttach[]
+
+  @@unique([parentId, name])
+}
