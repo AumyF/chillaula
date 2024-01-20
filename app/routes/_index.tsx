@@ -1,6 +1,6 @@
 import { ActionFunctionArgs, json, type MetaFunction } from "@remix-run/node";
 import { Form, Link, useActionData, useLoaderData } from "@remix-run/react";
-import { FC, PropsWithChildren, useState } from "react";
+import { FC, PropsWithChildren } from "react";
 import { authenticator } from "~/auth.server";
 import { Button } from "~/components/button";
 import { db } from "~/kysely";
@@ -26,21 +26,22 @@ const ResuList: FC<PropsWithChildren> = ({ children }) => {
 export const loader = async () => {
   return json(
     await db
-      .selectFrom("Resu").innerJoin("User", "User.id", "Resu.authorId")
+      .selectFrom("Resu")
+      .innerJoin("User", "User.id", "Resu.authorId")
       .select(["Resu.id", "Resu.content", "Resu.createdAt", "User.username"])
-    .orderBy("Resu.createdAt desc")
+      .orderBy("Resu.createdAt desc")
       .execute(),
   );
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   try {
-  } catch (e) { }
+  } catch (e) {}
   const user = await authenticator.isAuthenticated(request);
   const formData = await request.formData();
   const content = formData.get("content")?.toString();
-  if(!content) {
-    return json({error: "content empty"})
+  if (!content) {
+    return json({ error: "content empty" });
   }
   if (!user) {
     return json({ error: "login required" });
@@ -50,12 +51,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     .values({ content, authorId: user?.id })
     .executeTakeFirst();
 
-  return json({error: null})
+  return json({ error: null });
 };
 
 const ResuComposer: FC = () => {
   return (
-    <Form method="POST" className="flex flex-col gap-4 align-center justify-center">
+    <Form
+      method="POST"
+      className="flex flex-col gap-4 align-center justify-center"
+    >
       <label className="flex flex-col">
         <span className="uppercase text-gray-600">Content</span>
         <textarea
@@ -72,39 +76,38 @@ const ResuComposer: FC = () => {
 
 export default function Index() {
   const data = useLoaderData<typeof loader>();
-  const  actionData = useActionData<typeof action>();
+  const actionData = useActionData<typeof action>();
 
   return (
     <div className="max-w-xl mx-auto flex flex-col gap-4">
-
       <header className="flex gap-4 items-baseline">
-
-      <h1 className="font-bold text-4xl">Chillaula</h1>
+        <h1 className="font-bold text-4xl">Chillaula</h1>
 
         <Link to="/login">Sign in / Sign up</Link>
       </header>
-      {actionData?.error && <div className="p-4 rounded-md bg-red-200 border border-red-500 text-red-900">
-        {actionData.error}
-      </div>}
+      {actionData?.error && (
+        <div className="p-4 rounded-md bg-red-200 border border-red-500 text-red-900">
+          {actionData.error}
+        </div>
+      )}
       <ResuComposer></ResuComposer>
       <ResuList>
         <List list={data} fallback={() => <div>まだレスがありません</div>}>
           {({ id, content, createdAt, username }) => (
             <li key={id}>
-              <article >
-<div className="flex text-sm">
+              <article>
+                <div className="flex text-sm">
                   <div>{username}</div>
-                  
+
                   <div className="flex-grow"></div>
-              <time >{createdAt}</time>
+                  <time>{createdAt}</time>
                 </div>
-              <div>{content}</div>
+                <div>{content}</div>
               </article>
             </li>
           )}
         </List>
       </ResuList>
-        
     </div>
   );
 }
