@@ -1,6 +1,7 @@
 import { cssBundleHref } from "@remix-run/css-bundle";
 import type { LinksFunction, LoaderFunctionArgs } from "@remix-run/node";
 import {
+  Link,
   Links,
   LiveReload,
   Meta,
@@ -53,7 +54,17 @@ export default function App() {
       </head>
       <body>
         <div className="p-4">
-          <Outlet />
+          <div className="max-w-xl mx-auto flex flex-col gap-4">
+            <header className="flex gap-4 items-baseline">
+              <h1 className="font-bold text-4xl">Chillaula</h1>
+
+              <Link to="/login">Sign in / Sign up</Link>
+            </header>
+            <div>
+              <Link to="/bookmarks">Bookmarks</Link>
+            </div>
+            <Outlet />
+          </div>
         </div>
         <ScrollRestoration />
         <Scripts />

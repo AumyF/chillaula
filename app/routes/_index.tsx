@@ -1,7 +1,10 @@
 import { ActionFunctionArgs, json, type MetaFunction } from "@remix-run/node";
 import { Form, Link, useActionData, useLoaderData } from "@remix-run/react";
-import { FC, PropsWithChildren } from "react";
+import { FC } from "react";
 import { authenticator } from "~/auth.server";
+import { List } from "~/components/List";
+import { ResuList } from "~/components/ResuList";
+import { ResuView } from "~/components/ResuView";
 import { Button } from "~/components/button";
 import { db } from "~/kysely";
 
@@ -10,17 +13,6 @@ export const meta: MetaFunction = () => {
     { title: "New Remix App" },
     { name: "description", content: "Welcome to Remix!" },
   ];
-};
-
-const List = <T,>(props: {
-  list: readonly T[];
-  children: (item: T, index: number) => React.ReactNode;
-  fallback: () => React.ReactNode;
-}) =>
-  props.list.length > 0 ? props.list.map(props.children) : props.fallback();
-
-const ResuList: FC<PropsWithChildren> = ({ children }) => {
-  return <ul className="flex flex-col gap-4">{children}</ul>;
 };
 
 export const loader = async () => {
@@ -79,12 +71,7 @@ export default function Index() {
   const actionData = useActionData<typeof action>();
 
   return (
-    <div className="max-w-xl mx-auto flex flex-col gap-4">
-      <header className="flex gap-4 items-baseline">
-        <h1 className="font-bold text-4xl">Chillaula</h1>
-
-        <Link to="/login">Sign in / Sign up</Link>
-      </header>
+    <main>
       {actionData?.error && (
         <div className="p-4 rounded-md bg-red-200 border border-red-500 text-red-900">
           {actionData.error}
@@ -95,19 +82,11 @@ export default function Index() {
         <List list={data} fallback={() => <div>まだレスがありません</div>}>
           {({ id, content, createdAt, username }) => (
             <li key={id}>
-              <article>
-                <div className="flex text-sm">
-                  <div>{username}</div>
-
-                  <div className="flex-grow"></div>
-                  <time>{createdAt}</time>
-                </div>
-                <div>{content}</div>
-              </article>
+              <ResuView {...{ content, createdAt, username }} />
             </li>
           )}
         </List>
       </ResuList>
-    </div>
+    </main>
   );
 }
