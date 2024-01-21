@@ -1,12 +1,14 @@
 import { ActionFunctionArgs, json, type MetaFunction } from "@remix-run/node";
-import { Form, Link, useActionData, useLoaderData } from "@remix-run/react";
+import { Form, useActionData, useLoaderData } from "@remix-run/react";
 import { FC } from "react";
-import { authenticator } from "~/auth.server";
 import { List } from "~/components/List";
 import { ResuList } from "~/components/ResuList";
 import { ResuView } from "~/components/ResuView";
 import { Button } from "~/components/button";
 import { db } from "~/kysely";
+import { ResuComposer } from "~/resus/composer";
+import { createResu } from "~/resus/create";
+import { parseResu } from "~/resus/parseFromRequest";
 
 export const meta: MetaFunction = () => {
   return [
@@ -27,44 +29,22 @@ export const loader = async () => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  try {
-  } catch (e) {}
-  const user = await authenticator.isAuthenticated(request);
-  const formData = await request.formData();
-  const content = formData.get("content")?.toString();
-  if (!content) {
-    return json({ error: "content empty" });
+  const parseResult = await parseResu(request);
+
+  if (parseResult._type === "error") {
+    return json({ error: parseResult.error });
   }
-  if (!user) {
-    return json({ error: "login required" });
-  }
-  const result = await db
-    .insertInto("Resu")
-    .values({ content, authorId: user?.id })
-    .executeTakeFirst();
+
+  createResu({
+    content: parseResult.content,
+
+    authorId: parseResult.user.id,
+  });
 
   return json({ error: null });
 };
 
-const ResuComposer: FC = () => {
-  return (
-    <Form
-      method="POST"
-      className="flex flex-col gap-4 align-center justify-center"
-    >
-      <label className="flex flex-col">
-        <span className="uppercase text-gray-600">Content</span>
-        <textarea
-          name="content"
-          className="border border-zinc-300 rounded p-1"
-        ></textarea>
-      </label>
-      <Button type="submit" className="ml-auto">
-        Resu!
-      </Button>
-    </Form>
-  );
-};
+
 
 export default function Index() {
   const data = useLoaderData<typeof loader>();

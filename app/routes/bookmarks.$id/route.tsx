@@ -1,9 +1,44 @@
-import { LoaderFunctionArgs, json } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
+import { ActionFunctionArgs, LoaderFunctionArgs, json } from "@remix-run/node";
+import { useActionData, useLoaderData } from "@remix-run/react";
 import { List } from "~/components/List";
 import { ResuList } from "~/components/ResuList";
 import { ResuView } from "~/components/ResuView";
 import { db } from "~/kysely";
+import { parseHTML } from "linkedom/worker";
+import { parseResu } from "~/resus/parseFromRequest";
+import { createResu } from "~/resus/create";
+import { ResuComposer } from "~/resus/composer";
+
+export async function action({ request, params }: ActionFunctionArgs) {
+  const id = Number.parseInt(params["id"] ?? "whoahaaaa");
+  if (Number.isNaN(id)) {
+    return json({ error: "Not found" }, 404);
+  }
+
+  const bookmark = await db
+    .selectFrom("Bookmark")
+    .select(["collectionId"])
+    .where("id", "=", id)
+    .executeTakeFirst();
+
+  if (!bookmark) {
+    return json({ error: "Not found" });
+  }
+
+  const parseResult = await parseResu(request);
+
+  if (parseResult._type === "error") {
+    return json({ error: parseResult.error });
+  }
+
+  await createResu({
+    content: parseResult.content,
+    authorId: parseResult.user.id,
+    collectionId: bookmark.collectionId,
+  });
+
+  return json({ error: null });
+}
 
 export async function loader({ params }: LoaderFunctionArgs) {
   const id = Number.parseInt(params["id"] ?? "whoahaaaa");
@@ -13,7 +48,12 @@ export async function loader({ params }: LoaderFunctionArgs) {
   const bookmark = await db
     .selectFrom("Bookmark")
     .innerJoin("ResuCollection", "ResuCollection.id", "Bookmark.collectionId")
-    .select(["Bookmark.id", "Bookmark.collectionId"])
+    .select([
+      "Bookmark.id",
+      "Bookmark.collectionId",
+      "Bookmark.title",
+      "Bookmark.url",
+    ])
     .where("Bookmark.id", "=", id)
     .executeTakeFirst();
 
@@ -26,23 +66,38 @@ export async function loader({ params }: LoaderFunctionArgs) {
     .innerJoin("User", "User.id", "Resu.authorId")
     .selectAll()
     .where("Resu.collectionId", "=", bookmark?.collectionId)
+    .orderBy("Resu.createdAt asc")
     .execute();
 
-  return json({ bookmark: { ...bookmark, resus }, error: null });
+  const fetchedTitle = bookmark.title
+    ? undefined
+    : await fetch(bookmark.url)
+      .then((response) => response.text())
+      .then((text) => {
+        const html = parseHTML(text);
+        return html.document.querySelector("title")?.innerText;
+      });
+
+  return json({ fetchedTitle, bookmark: { ...bookmark, resus }, error: null });
 }
 
 export default function BookmarkPage() {
-  const bookmark = useLoaderData<typeof loader>();
+  const loaderData = useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>();
 
-  if (!bookmark || bookmark.error != null) {
-    return <div>{bookmark.error}</div>;
+  if (!loaderData || loaderData.error != null) {
+    return <div>{loaderData.error}</div>;
   }
 
   return (
     <div>
+      <h1>{loaderData.bookmark.title}</h1>
+      {loaderData.fetchedTitle && (
+        <div>fetched title: {loaderData.fetchedTitle}</div>
+      )}
       <ResuList>
         <List
-          list={bookmark.bookmark.resus}
+          list={loaderData.bookmark.resus}
           fallback={() => <div>まだレスがありません</div>}
         >
           {({ id, content, createdAt, username }) => (
@@ -52,6 +107,12 @@ export default function BookmarkPage() {
           )}
         </List>
       </ResuList>
+      <ResuComposer />
+      {actionData?.error && (
+        <div className="p-4 rounded-md bg-red-200 border border-red-500 text-red-900">
+          {actionData.error}
+        </div>
+      )}
     </div>
   );
 }
