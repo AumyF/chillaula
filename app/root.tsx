@@ -1,5 +1,5 @@
 import { cssBundleHref } from "@remix-run/css-bundle";
-import type { LinksFunction, LoaderFunctionArgs } from "@remix-run/node";
+import type { LinksFunction, LoaderFunctionArgs } from "@remix-run/cloudflare";
 import {
   Link,
   Links,
@@ -12,8 +12,7 @@ import {
 } from "@remix-run/react";
 
 import styles from "./tailwind.css";
-import { authenticator } from "./auth.server";
-import { db } from "./kysely";
+import { getAuthenticator } from "./auth.server";
 import { sessionStorage } from "./auth/session.server";
 
 export const links: LinksFunction = () => [
@@ -22,11 +21,13 @@ export const links: LinksFunction = () => [
 ];
 
 export async function loader({ context, request }: LoaderFunctionArgs) {
-  const user = await authenticator.isAuthenticated(request);
+  const user = await getAuthenticator(context.db).authenticator.isAuthenticated(
+    request,
+  );
   if (!user) {
     return json({ user: null });
   }
-  const userData = await db
+  const userData = await context.db
     .selectFrom("User")
     .selectAll()
     .where("id", "=", user.id)

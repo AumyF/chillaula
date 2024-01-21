@@ -1,9 +1,10 @@
-import { LoaderFunctionArgs } from "@remix-run/node";
+import { LoaderFunctionArgs } from "@remix-run/cloudflare";
 import { Outlet } from "@remix-run/react";
-import { authenticator, webAuthnStrategy } from "~/auth.server";
+import { getAuthenticator } from "~/auth.server";
 import { sessionStorage } from "~/auth/session.server";
 
-export const loader = async ({ request }: LoaderFunctionArgs) => {
+export const loader = async ({ request, context }: LoaderFunctionArgs) => {
+  const { authenticator, webAuthnStrategy } = getAuthenticator(context.db);
   const user = await authenticator.isAuthenticated(request);
 
   return webAuthnStrategy.generateOptions(request, sessionStorage, user);

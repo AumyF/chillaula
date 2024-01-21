@@ -1,6 +1,9 @@
-import { authenticator } from "~/auth.server";
+import { Authenticator } from "remix-auth";
 
-export const parseResu = async (request: Request) => {
+export const parseResu = async (
+  authenticator: Authenticator<{ id: number }>,
+  request: Request,
+) => {
   const user = await authenticator.isAuthenticated(request);
   const formData = await request.formData();
   const content = formData.get("content")?.toString();

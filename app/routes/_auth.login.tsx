@@ -1,19 +1,19 @@
-import { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
+import { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/cloudflare";
 import { Form, Link, useActionData, useLoaderData } from "@remix-run/react";
-import { ButtonHTMLAttributes } from "react";
 import { handleFormSubmit } from "remix-auth-webauthn/build/handleFormSubmit.js";
-import { authenticator, webAuthnStrategy } from "~/auth.server";
+import { getAuthenticator } from "~/auth.server";
 import { sessionStorage } from "~/auth/session.server";
 import { Button } from "~/components/button";
-import { db } from "~/kysely";
 
-export const loader = async ({ request }: LoaderFunctionArgs) => {
+export const loader = async ({ request, context }: LoaderFunctionArgs) => {
+  const { webAuthnStrategy, authenticator } = getAuthenticator(context.db);
   const user = await authenticator.isAuthenticated(request);
 
   return webAuthnStrategy.generateOptions(request, sessionStorage, user);
 };
 
-export const action = async ({ request }: ActionFunctionArgs) => {
+export const action = async ({ request, context }: ActionFunctionArgs) => {
+  const { authenticator } = getAuthenticator(context.db);
   try {
     const request2 = request.clone();
     const user = await authenticator.isAuthenticated(
@@ -41,7 +41,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       }
 
       // invite codeの存在チェック
-      const invitation = await db
+      const invitation = await context.db
         .selectFrom("Invitation")
         .selectAll()
         .where("code", "=", code)
@@ -52,7 +52,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       }
 
       // invite codeが未使用かチェック
-      const invitedUser = await db
+      const invitedUser = await context.db
         .selectFrom("User")
         .selectAll()
         .where("User.invitationId", "=", invitation.id)
@@ -63,7 +63,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       }
 
       // ユーザーを作る
-      await db
+      await context.db
         .insertInto("User")
         .values({ username, invitationId: invitation.id })
         .executeTakeFirst();

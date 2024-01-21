@@ -1,24 +1,25 @@
-import { LoaderFunctionArgs, json, redirect } from "@remix-run/node";
+import { LoaderFunctionArgs, json, redirect } from "@remix-run/cloudflare";
 import { Form, useLoaderData, useRouteLoaderData } from "@remix-run/react";
 import { handleFormSubmit } from "remix-auth-webauthn/build/handleFormSubmit.js";
-import { authenticator } from "~/auth.server";
-import { db } from "~/kysely";
+import { getAuthenticator } from "~/auth.server";
 import type { loader as optionLoader } from "./_auth";
 
-export async function loader({ request }: LoaderFunctionArgs) {
-  const user = await authenticator.isAuthenticated(request);
+export async function loader({ request, context }: LoaderFunctionArgs) {
+  const user = await getAuthenticator(context.db).authenticator.isAuthenticated(
+    request,
+  );
 
   if (!user) {
     return redirect("/login");
   }
 
-  const userData = await db
+  const userData = await context.db
     .selectFrom("User")
     .selectAll()
     .where("id", "=", user.id)
     .executeTakeFirst();
 
-  const authenticators = await db
+  const authenticators = await context.db
     .selectFrom("Authenticator")
     .select(["id", "createdAt"])
     .where("userId", "=", user.id)

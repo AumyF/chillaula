@@ -1,21 +1,27 @@
-import { ActionFunctionArgs, LoaderFunctionArgs, json } from "@remix-run/node";
+import {
+  ActionFunctionArgs,
+  LoaderFunctionArgs,
+  json,
+} from "@remix-run/cloudflare";
 import { useActionData, useLoaderData } from "@remix-run/react";
 import { List } from "~/components/List";
 import { ResuList } from "~/components/ResuList";
 import { ResuView } from "~/components/ResuView";
-import { db } from "~/kysely";
 import { parseHTML } from "linkedom/worker";
 import { parseResu } from "~/resus/parseFromRequest";
 import { createResu } from "~/resus/create";
 import { ResuComposer } from "~/resus/composer";
+import { getAuthenticator } from "~/auth.server";
 
-export async function action({ request, params }: ActionFunctionArgs) {
+export async function action({ request, params, context }: ActionFunctionArgs) {
+  const { authenticator } = getAuthenticator(context.db);
+
   const id = Number.parseInt(params["id"] ?? "whoahaaaa");
   if (Number.isNaN(id)) {
     return json({ error: "Not found" }, 404);
   }
 
-  const bookmark = await db
+  const bookmark = await context.db
     .selectFrom("Bookmark")
     .select(["collectionId"])
     .where("id", "=", id)
@@ -25,13 +31,13 @@ export async function action({ request, params }: ActionFunctionArgs) {
     return json({ error: "Not found" });
   }
 
-  const parseResult = await parseResu(request);
+  const parseResult = await parseResu(authenticator, request);
 
   if (parseResult._type === "error") {
     return json({ error: parseResult.error });
   }
 
-  await createResu({
+  await createResu(context.db, {
     content: parseResult.content,
     authorId: parseResult.user.id,
     collectionId: bookmark.collectionId,
@@ -40,12 +46,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
   return json({ error: null });
 }
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({ params, context }: LoaderFunctionArgs) {
   const id = Number.parseInt(params["id"] ?? "whoahaaaa");
   if (Number.isNaN(id)) {
     return json({ error: "Not found" }, 404);
   }
-  const bookmark = await db
+  const bookmark = await context.db
     .selectFrom("Bookmark")
     .innerJoin("ResuCollection", "ResuCollection.id", "Bookmark.collectionId")
     .select([
@@ -61,7 +67,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
     return json({ error: `bookmark with id ${id} not found` }, 404);
   }
 
-  const resus = await db
+  const resus = await context.db
     .selectFrom("Resu")
     .innerJoin("User", "User.id", "Resu.authorId")
     .selectAll()
@@ -72,11 +78,11 @@ export async function loader({ params }: LoaderFunctionArgs) {
   const fetchedTitle = bookmark.title
     ? undefined
     : await fetch(bookmark.url)
-      .then((response) => response.text())
-      .then((text) => {
-        const html = parseHTML(text);
-        return html.document.querySelector("title")?.innerText;
-      });
+        .then((response) => response.text())
+        .then((text) => {
+          const html = parseHTML(text);
+          return html.document.querySelector("title")?.innerText;
+        });
 
   return json({ fetchedTitle, bookmark: { ...bookmark, resus }, error: null });
 }

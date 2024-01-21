@@ -1,11 +1,12 @@
 import { WebAuthnStrategy } from "remix-auth-webauthn";
 import { Authenticator } from "remix-auth";
 import { sessionStorage } from "./auth/session.server";
-import { db } from "./kysely";
+import { Kysely } from "kysely";
+import { DB } from "./db/generated/types";
 
 type User = { id: number; username: string };
 
-const getAuthenticators = async (user: User | null) => {
+const getAuthenticators = async (db: Kysely<DB>, user: User | null) => {
   if (!user) return [];
   return await db
     .selectFrom("Authenticator")
@@ -14,7 +15,7 @@ const getAuthenticators = async (user: User | null) => {
     .execute();
 };
 
-const getUserByUsername = async (username: string) => {
+const getUserByUsername = async (db: Kysely<DB>, username: string) => {
   return await db
     .selectFrom("User")
     .selectAll()
@@ -22,7 +23,7 @@ const getUserByUsername = async (username: string) => {
     .executeTakeFirst();
 };
 
-const getAuthenticatorById = async (id: string) => {
+const getAuthenticatorById = async (db: Kysely<DB>, id: string) => {
   return await db
     .selectFrom("Authenticator")
     .selectAll()
@@ -30,7 +31,11 @@ const getAuthenticatorById = async (id: string) => {
     .executeTakeFirst();
 };
 
-const createUser = async (username: string, invitationId: number) => {
+const createUser = async (
+  db: Kysely<DB>,
+  username: string,
+  invitationId: number,
+) => {
   const result = await db
     .insertInto("User")
     .values({ username, invitationId })
@@ -38,7 +43,7 @@ const createUser = async (username: string, invitationId: number) => {
   return result.insertId ? { id: Number(result.insertId), username } : null;
 };
 
-const getUserById = async (userId: number) => {
+const getUserById = async (db: Kysely<DB>, userId: number) => {
   return await db
     .selectFrom("User")
     .selectAll()
@@ -47,6 +52,7 @@ const getUserById = async (userId: number) => {
 };
 
 const createAuthenticator = async (
+  db: Kysely<DB>,
   authenticator: {
     credentialID: string;
     credentialPublicKey: string;
@@ -70,70 +76,75 @@ const createAuthenticator = async (
     .executeTakeFirstOrThrow();
 };
 
-export const authenticator = new Authenticator<User>(sessionStorage);
+export const getAuthenticator = (db: Kysely<DB>) => {
+  const authenticator = new Authenticator<User>(sessionStorage);
 
-export const webAuthnStrategy = new WebAuthnStrategy<User>(
-  {
-    rpName: "Chillaula",
-    rpID: (request) => new URL(request.url).hostname,
-    origin: (request) => new URL(request.url).origin,
-    getUserAuthenticators: async (user) => {
-      const authenticators = await getAuthenticators(user);
+  const webAuthnStrategy = new WebAuthnStrategy<User>(
+    {
+      rpName: "Chillaula",
+      rpID: (request) => new URL(request.url).hostname,
+      origin: (request) => new URL(request.url).origin,
+      getUserAuthenticators: async (user) => {
+        const authenticators = await getAuthenticators(db, user);
 
-      return authenticators.map((authenticator) => ({
-        ...authenticator,
-        transports: authenticator.transports.split(","),
-      }));
+        return authenticators.map((authenticator) => ({
+          ...authenticator,
+          transports: authenticator.transports.split(","),
+        }));
+      },
+      getUserDetails: (user) =>
+        user ? { id: user.id.toString(), username: user.username } : null,
+      getUserByUsername: async (username) => {
+        const user = await getUserByUsername(db, username);
+        return user ?? null;
+      },
+      getAuthenticatorById: async (id) => {
+        const authenticator = await getAuthenticatorById(db, id);
+        return authenticator
+          ? { ...authenticator, userId: authenticator.userId.toString() }
+          : null;
+      },
     },
-    getUserDetails: (user) =>
-      user ? { id: user.id.toString(), username: user.username } : null,
-    getUserByUsername: async (username) => {
-      const user = await getUserByUsername(username);
-      return user ?? null;
-    },
-    getAuthenticatorById: async (id) => {
-      const authenticator = await getAuthenticatorById(id);
-      return authenticator
-        ? { ...authenticator, userId: authenticator.userId.toString() }
-        : null;
-    },
-  },
-  async function verify({ authenticator, type, username }) {
-    let user: User | null = null;
+    async function verify({ authenticator, type, username }) {
+      let user: User | null = null;
 
-    const savedAuthenticator = await getAuthenticatorById(
-      authenticator.credentialID,
-    );
+      const savedAuthenticator = await getAuthenticatorById(
+        db,
+        authenticator.credentialID,
+      );
 
-    switch (type) {
-      case "registration": {
-        // 既存のユーザー(たった今作られたものも含む)にpasskeyを登録
-        if (savedAuthenticator) {
-          throw new Error("This authenticator has already been registered");
+      switch (type) {
+        case "registration": {
+          // 既存のユーザー(たった今作られたものも含む)にpasskeyを登録
+          if (savedAuthenticator) {
+            throw new Error("This authenticator has already been registered");
+          }
+
+          if (!username) throw new Error("Username is required");
+          user = (await getUserByUsername(db, username)) ?? null;
+
+          // たぶんふまないはず
+          if (!user) throw new Error("User not found");
+
+          await createAuthenticator(db, authenticator, user.id);
+          break;
         }
+        case "authentication": {
+          if (!savedAuthenticator)
+            throw new Error("Authenticator not registered");
 
-        if (!username) throw new Error("Username is required");
-        user = (await getUserByUsername(username)) ?? null;
-
-        // たぶんふまないはず
-        if (!user) throw new Error("User not found");
-
-        await createAuthenticator(authenticator, user.id);
-        break;
+          user = await getUserById(db, savedAuthenticator.userId);
+          break;
+        }
       }
-      case "authentication": {
-        if (!savedAuthenticator)
-          throw new Error("Authenticator not registered");
 
-        user = await getUserById(savedAuthenticator.userId);
-        break;
-      }
-    }
+      if (!user) throw new Error("User not found");
 
-    if (!user) throw new Error("User not found");
+      return user;
+    },
+  );
 
-    return user;
-  },
-);
+  authenticator.use(webAuthnStrategy);
 
-authenticator.use(webAuthnStrategy);
+  return { authenticator, webAuthnStrategy };
+};

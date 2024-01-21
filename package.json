@@ -5,18 +5,17 @@
   "type": "module",
   "scripts": {
     "build": "remix build",
-    "dev": "remix dev --manual",
+    "start": "$wrangler dev ./build/index.js",
+    "dev": "remix dev --manual -c \"bun run start\"",
     "lint": "eslint --ignore-path .gitignore --cache --cache-location ./node_modules/.cache/eslint .",
-    "start": "remix-serve ./build/index.js",
-    "pages:dev": "wrangler pages dev --compatibility-date=2023-12-18 --proxy 44707 -- bun dev",
     "typecheck": "tsc",
     "format:write": "prettier --write ."
   },
   "dependencies": {
     "@planetscale/database": "^1.13.0",
     "@radix-ui/react-toast": "^1.1.5",
+    "@remix-run/cloudflare": "^2.5.1",
     "@remix-run/css-bundle": "^2.5.0",
-    "@remix-run/node": "^2.5.0",
     "@remix-run/react": "^2.5.0",
     "@remix-run/serve": "^2.5.0",
     "isbot": "^4.1.0",
@@ -47,7 +46,7 @@
     "prettier": "^3.2.2",
     "tailwindcss": "insiders",
     "typescript": "^5.1.6",
-    "wrangler": "^3.23.0"
+    "wrangler": "latest"
   },
   "engines": {
     "node": ">=18.0.0"

@@ -3,5 +3,6 @@ node_modules
 /.cache
 /build
 /public/build
-.env.local
+.dev.vars
 /app/db/generated
+.wrangler

@@ -1,11 +1,15 @@
-import { ActionFunctionArgs, json, redirect } from "@remix-run/node";
+import {
+  ActionFunctionArgs,
+  LoaderFunctionArgs,
+  json,
+  redirect,
+} from "@remix-run/cloudflare";
 import { Form, Link, useLoaderData } from "@remix-run/react";
-import { authenticator } from "~/auth.server";
+import { getAuthenticator } from "~/auth.server";
 import { List } from "~/components/List";
-import { db } from "~/kysely";
 
-export async function loader() {
-  const bookmarks = await db
+export async function loader({ context }: LoaderFunctionArgs) {
+  const bookmarks = await context.db
     .selectFrom("Bookmark")
     .innerJoin("User", "User.id", "Bookmark.authorId")
     .select([
@@ -21,7 +25,8 @@ export async function loader() {
   return json({ bookmarks });
 }
 
-export async function action({ request }: ActionFunctionArgs) {
+export async function action({ request, context }: ActionFunctionArgs) {
+  const { authenticator } = getAuthenticator(context.db);
   const user = await authenticator.isAuthenticated(request);
   const formData = await request.formData();
 
@@ -33,7 +38,7 @@ export async function action({ request }: ActionFunctionArgs) {
     return json({ error: "login required" }, 400);
   }
 
-  const result = await db.transaction().execute(async (db) => {
+  const result = await context.db.transaction().execute(async (db) => {
     const collection = await db
       .insertInto("ResuCollection")
       .values({})
