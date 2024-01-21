@@ -8,8 +8,8 @@ export type Props = {
 
 export const ResuView: FC<Props> = ({ username, createdAt, content }) => {
   return (
-    <article>
-      <div className="flex text-sm">
+    <article className="rounded-2xl bg-white p-4">
+      <div className="flex text-sm text-slate-600">
         <div>{username}</div>
 
         <div className="flex-grow"></div>

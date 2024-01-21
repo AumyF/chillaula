@@ -70,19 +70,21 @@ export default function Bookmarks() {
   const data = useLoaderData<typeof loader>();
 
   return (
-    <div>
-      <Form method="POST">
-        <label>
-          <div>URL</div>
-          <input name="url" />
+    <div className="flex flex-col gap-4">
+      <Form method="POST" className="flex items-end">
+        <label className="flex-grow">
+          <div className="text-slate-600 font-bold">URL</div>
+          <input className="rounded-s-lg p-2 w-full" name="url" />
         </label>
-        <button>Create Bookmark</button>
+        <button className="font-bold bg-blue-600 text-slate-50 rounded-e-lg p-2">
+          Create Bookmark
+        </button>
       </Form>
-      <ul>
+      <ul className="flex flex-col gap-2">
         <List fallback={() => <div></div>} list={data.bookmarks}>
           {({ id, url, title, username, createdAt }) => (
             <li key={id}>
-              <article>
+              <article className="bg-white rounded-2xl p-4">
                 <div className="flex text-sm">
                   <div>{username}</div>
                   <div className="flex-grow" />

@@ -46,7 +46,7 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
 
 export default function App() {
   return (
-    <html lang="ja">
+    <html lang="ja" className="bg-slate-200">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />

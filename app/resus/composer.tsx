@@ -6,13 +6,13 @@ export const ResuComposer: FC = () => {
   return (
     <Form
       method="POST"
-      className="flex flex-col gap-4 align-center justify-center"
+      className="flex flex-col gap-2 align-center justify-center"
     >
       <label className="flex flex-col">
         <span className="uppercase text-gray-600">Content</span>
         <textarea
           name="content"
-          className="border border-zinc-300 rounded p-1"
+          className="border border-slate-300 rounded-2xl p-4"
         ></textarea>
       </label>
       <Button type="submit" className="ml-auto">

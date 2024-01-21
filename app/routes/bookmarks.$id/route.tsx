@@ -12,6 +12,7 @@ import { parseResu } from "~/resus/parseFromRequest";
 import { createResu } from "~/resus/create";
 import { ResuComposer } from "~/resus/composer";
 import { getAuthenticator } from "~/auth.server";
+import { PageHeading } from "~/components/page-heading";
 
 export async function action({ request, params, context }: ActionFunctionArgs) {
   const { authenticator } = getAuthenticator(context.db);
@@ -70,21 +71,31 @@ export async function loader({ params, context }: LoaderFunctionArgs) {
   const resus = await context.db
     .selectFrom("Resu")
     .innerJoin("User", "User.id", "Resu.authorId")
-    .selectAll()
+    .select([
+      "Resu.id",
+      "User.username as username",
+      "content",
+      "Resu.createdAt",
+    ])
     .where("Resu.collectionId", "=", bookmark?.collectionId)
     .orderBy("Resu.createdAt asc")
     .execute();
 
-  const fetchedTitle = bookmark.title
+  const pageData = bookmark.title
     ? undefined
     : await fetch(bookmark.url)
-        .then((response) => response.text())
-        .then((text) => {
-          const html = parseHTML(text);
-          return html.document.querySelector("title")?.innerText;
-        });
+      .then((res) => res.text())
+      .then((text) => {
+        const html = parseHTML(text);
+        const title = html.document.querySelector("title")?.innerText;
+        const image = html.document
+          .querySelector('meta[property="og:image"]')
+          ?.getAttribute("content");
 
-  return json({ fetchedTitle, bookmark: { ...bookmark, resus }, error: null });
+        return { image, title };
+      });
+
+  return json({ pageData, bookmark: { ...bookmark, resus }, error: null });
 }
 
 export default function BookmarkPage() {
@@ -96,11 +107,17 @@ export default function BookmarkPage() {
   }
 
   return (
-    <div>
-      <h1>{loaderData.bookmark.title}</h1>
-      {loaderData.fetchedTitle && (
-        <div>fetched title: {loaderData.fetchedTitle}</div>
+    <div className="flex flex-col gap-4">
+      <div className="bg-white p-4 rounded-2xl backdrop-blur flex flex-col gap-2">
+        <PageHeading>
+          {loaderData.bookmark.title || loaderData.bookmark.url}
+        </PageHeading>
+{loaderData.pageData?.title && (
+        <div>fetched title: {loaderData.pageData.title}</div>
       )}
+      </div>
+
+      
       <ResuList>
         <List
           list={loaderData.bookmark.resus}

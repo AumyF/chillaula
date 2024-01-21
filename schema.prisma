@@ -91,6 +91,8 @@ model Bookmark {
   /// URLで参照できないものはいまのところスコープ外。URLが変わったときはそっちに張り替え直すことを想定している
   url String @unique
 
+  closed Boolean @default(false)
+
   collection   ResuCollection @relation(fields: [collectionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   collectionId Int            @unique
 
@@ -108,6 +110,8 @@ model Thread {
   author   User @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   title String
+
+  closed Boolean @default(false)
 
   collection   ResuCollection @relation(fields: [collectionId], references: [id])
   collectionId Int            @unique
