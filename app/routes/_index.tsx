@@ -7,8 +7,8 @@ import {
 import { useActionData, useLoaderData } from "@remix-run/react";
 import { getAuthenticator } from "~/auth.server";
 import { List } from "~/components/List";
-import { ResuList } from "~/components/ResuList";
-import { ResuView } from "~/components/ResuView";
+import { ResuList } from "~/resus/list";
+import { ResuView } from "~/resus/view";
 import { ResuComposer } from "~/resus/composer";
 import { createResu } from "~/resus/create";
 import { parseResu } from "~/resus/parseFromRequest";

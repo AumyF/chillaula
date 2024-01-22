@@ -5,8 +5,8 @@ import {
 } from "@remix-run/cloudflare";
 import { useActionData, useLoaderData } from "@remix-run/react";
 import { List } from "~/components/List";
-import { ResuList } from "~/components/ResuList";
-import { ResuView } from "~/components/ResuView";
+import { ResuList } from "~/resus/list";
+import { ResuView } from "~/resus/view";
 import { parseHTML } from "linkedom/worker";
 import { parseResu } from "~/resus/parseFromRequest";
 import { createResu } from "~/resus/create";
