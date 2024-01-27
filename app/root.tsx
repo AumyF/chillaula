@@ -57,12 +57,15 @@ export default function App() {
         <div className="p-4">
           <div className="max-w-xl mx-auto flex flex-col gap-4">
             <header className="flex gap-4 items-baseline">
-              <h1 className="font-bold text-4xl">Chillaula</h1>
+              <h1 className="font-bold text-4xl">
+                <Link to="/">Chillaula</Link>
+              </h1>
 
               <Link to="/login">Sign in / Sign up</Link>
             </header>
-            <div>
+            <div className="flex gap-2">
               <Link to="/bookmarks">Bookmarks</Link>
+              <Link to="/threads">Threads</Link>
             </div>
             <Outlet />
           </div>
