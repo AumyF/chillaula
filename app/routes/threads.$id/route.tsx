@@ -20,17 +20,6 @@ export async function action({ request, params, context }: ActionFunctionArgs) {
   if (Number.isNaN(id)) {
     return json({ error: "Not found" }, 404);
   }
-
-  const bookmark = await context.db
-    .selectFrom("Thread")
-    .select(["collectionId"])
-    .where("id", "=", id)
-    .executeTakeFirst();
-
-  if (!bookmark) {
-    return json({ error: "Not found" });
-  }
-
   const parseResult = await parseResu(authenticator, request);
 
   if (parseResult._type === "error") {
@@ -40,7 +29,7 @@ export async function action({ request, params, context }: ActionFunctionArgs) {
   await createResu(context.db, {
     content: parseResult.content,
     authorId: parseResult.user.id,
-    collectionId: bookmark.collectionId,
+    threadId: id
   });
 
   return json({ error: null });
@@ -53,8 +42,7 @@ export async function loader({ params, context }: LoaderFunctionArgs) {
   }
   const bookmark = await context.db
     .selectFrom("Thread")
-    .innerJoin("ResuCollection", "ResuCollection.id", "Thread.collectionId")
-    .select(["Thread.id", "Thread.collectionId", "Thread.title"])
+    .select(["Thread.id", "Thread.title"])
     .where("Thread.id", "=", id)
     .executeTakeFirst();
 
@@ -71,7 +59,7 @@ export async function loader({ params, context }: LoaderFunctionArgs) {
       "content",
       "Resu.createdAt",
     ])
-    .where("Resu.collectionId", "=", bookmark?.collectionId)
+    .where("Resu.threadId", "=", bookmark?.id)
     .orderBy("Resu.createdAt asc")
     .execute();
 

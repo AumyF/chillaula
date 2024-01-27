@@ -6,15 +6,15 @@ export const createResu = async (
   {
     content,
     authorId,
-    collectionId,
+    threadId,
   }: {
     content: string;
     authorId: number;
-    collectionId?: number;
+    threadId?: number;
   },
 ) => {
-  await db
+  return await db
     .insertInto("Resu")
-    .values({ content, authorId, collectionId })
+    .values({ content, authorId, threadId })
     .executeTakeFirst();
 };

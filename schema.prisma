@@ -18,7 +18,6 @@ model User {
   invitationId  Int             @unique
 
   resus     Resu[]
-  bookmarks Bookmark[]
   threads   Thread[]
 
   @@index([invitationId])
@@ -61,8 +60,8 @@ model Resu {
   content String
 
   /// 属するスレッド
-  collectionId Int?
-  collection   ResuCollection? @relation(fields: [collectionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  threadId Int?
+  thread   Thread? @relation(fields: [threadId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   /// 既存レスを埋め込んで言及する感じ
   quoteId  Int?
@@ -74,31 +73,7 @@ model Resu {
 
   @@index([authorId])
   @@index([quoteId])
-  @@index([collectionId])
-}
-
-/// Webページそのものを指す
-model Bookmark {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-
-  authorId Int
-  author   User @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  /// 空文字列の場合は表示側でURLから自動生成する
-  title String
-
-  /// URLで参照できないものはいまのところスコープ外。URLが変わったときはそっちに張り替え直すことを想定している
-  url String @unique
-
-  closed Boolean @default(false)
-
-  collection   ResuCollection @relation(fields: [collectionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  collectionId Int            @unique
-
-  tags TagAttach[]
-
-  @@index([authorId])
+  @@index([threadId])
 }
 
 /// 素のスレッド
@@ -113,24 +88,11 @@ model Thread {
 
   closed Boolean @default(false)
 
-  collection   ResuCollection @relation(fields: [collectionId], references: [id])
-  collectionId Int            @unique
+  resus Resu[]
+
   TagAttach    TagAttach[]
 
   @@index([authorId])
-}
-
-/// 複数のResuが*時系列順で*並んだもの
-model ResuCollection {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-
-  /// 属するレス
-  Resu Resu[]
-
-  // ヘッド
-  Thread   Thread?
-  Bookmark Bookmark?
 }
 
 model TagAttach {
@@ -138,15 +100,12 @@ model TagAttach {
   tagId Int
   tag   Tag @relation(fields: [tagId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  bookmarkId Int?
   threadId   Int?
   resuId     Int?
-  bookmark   Bookmark? @relation(fields: [bookmarkId], references: [id])
   thread     Thread?   @relation(fields: [threadId], references: [id])
   resu       Resu?     @relation(fields: [resuId], references: [id])
 
-  @@unique([tagId, threadId, bookmarkId, resuId])
-  @@index([bookmarkId])
+  @@unique([tagId, threadId, resuId])
   @@index([threadId])
   @@index([resuId])
 }

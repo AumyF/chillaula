@@ -1,4 +1,3 @@
-
 import {
   ActionFunctionArgs,
   LoaderFunctionArgs,
@@ -13,12 +12,7 @@ export async function loader({ context }: LoaderFunctionArgs) {
   const bookmarks = await context.db
     .selectFrom("Thread")
     .innerJoin("User", "User.id", "Thread.authorId")
-    .select([
-      "Thread.id",
-      "Thread.title",
-      "Thread.createdAt",
-      "User.username",
-    ])
+    .select(["Thread.id", "Thread.title", "Thread.createdAt", "User.username"])
     .orderBy("Thread.createdAt desc")
     .execute();
 
@@ -38,25 +32,13 @@ export async function action({ request, context }: ActionFunctionArgs) {
     return json({ error: "login required" }, 400);
   }
 
-  const result = await context.db.transaction().execute(async (db) => {
-    const collection = await db
-      .insertInto("ResuCollection")
-      .values({})
-      .executeTakeFirstOrThrow();
-
-    if (collection.insertId === undefined) {
-      throw new Error("failed to insert");
-    }
-
-    return await db
-      .insertInto("Thread")
-      .values({
-        title,
-        collectionId: Number(collection.insertId),
-        authorId: user.id,
-      })
-      .executeTakeFirstOrThrow();
-  });
+  const result = await context.db
+    .insertInto("Thread")
+    .values({
+      title,
+      authorId: user.id,
+    })
+    .executeTakeFirstOrThrow();
 
   if (result.insertId === undefined) {
     throw new Error("Failed to insert");

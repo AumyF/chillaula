@@ -25,7 +25,8 @@ export const loader = async ({ context }: LoaderFunctionArgs) => {
     await context.db
       .selectFrom("Resu")
       .innerJoin("User", "User.id", "Resu.authorId")
-      .select(["Resu.id", "Resu.content", "Resu.createdAt", "User.username"])
+    .leftJoin("Thread", "Thread.id", "Resu.threadId")
+      .select(["Resu.id", "Resu.content", "Resu.createdAt", "User.username", "Thread.title as threadTitle", "Thread.id as threadId"])
       .orderBy("Resu.createdAt desc")
       .execute(),
   );
@@ -62,9 +63,9 @@ export default function Index() {
       <ResuComposer></ResuComposer>
       <ResuList>
         <List list={data} fallback={() => <div>まだレスがありません</div>}>
-          {({ id, content, createdAt, username }) => (
+          {({ id, content, createdAt, username, threadTitle, threadId }) => (
             <li key={id}>
-              <ResuView {...{ content, createdAt, username }} />
+              <ResuView {...{ content, createdAt, username, threadTitle, threadId }} />
             </li>
           )}
         </List>
