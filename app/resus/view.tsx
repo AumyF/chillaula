@@ -1,4 +1,6 @@
-import { FC, ReactNode } from "react";
+import { FC, ReactNode, useEffect, useState } from "react";
+import "@formatjs/intl-durationformat/polyfill";
+import { Temporal } from "@js-temporal/polyfill";
 
 export type Props = {
   username: string;
@@ -8,6 +10,8 @@ export type Props = {
   threadTitle?: string | null;
 };
 
+let isHydrating = true;
+
 export const ResuView: FC<Props> = ({
   username,
   createdAt,
@@ -15,14 +19,35 @@ export const ResuView: FC<Props> = ({
   threadId,
   threadTitle,
 }) => {
+  const [isHydrated, setIsHydrated] = useState(!isHydrating);
+
+  useEffect(() => {
+    isHydrating = false;
+    setIsHydrated(true);
+  }, []);
+  const at = Temporal.Instant.from(createdAt).toZonedDateTimeISO(
+    Temporal.Now.timeZoneId(),
+  );
   return (
     <article className="rounded-2xl bg-white p-4">
       <div className="text-sm text-slate-600">
-        <span className="font-bold">{username}</span>が<time>{createdAt}</time>
+        <span className="font-bold">{username}</span>が
+        <time>
+          {isHydrated &&
+            Temporal.Now.zonedDateTimeISO()
+              .since(at, { smallestUnit: "minute" })
+              .toLocaleString("ja-JP")}
+        </time>
         に
         {threadId != null ? (
           <>
-            <a className="underline underline-offset-2 decoration-1 hover:decoration-2" href={`/threads/${threadId}`}>{threadTitle}</a>に
+            <a
+              className="underline underline-offset-2 decoration-1 hover:decoration-2"
+              href={`/threads/${threadId}`}
+            >
+              {threadTitle}
+            </a>
+            に
           </>
         ) : (
           ""

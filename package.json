@@ -12,6 +12,8 @@
     "format:write": "prettier --write ."
   },
   "dependencies": {
+    "@formatjs/intl-durationformat": "^0.2.2",
+    "@js-temporal/polyfill": "^0.4.4",
     "@planetscale/database": "^1.13.0",
     "@radix-ui/react-toast": "^1.1.5",
     "@remix-run/cloudflare": "^2.5.1",
