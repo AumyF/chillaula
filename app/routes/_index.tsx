@@ -12,6 +12,7 @@ import { ResuView } from "~/resus/view";
 import { ResuComposer } from "~/resus/composer";
 import { createResu } from "~/resus/create";
 import { parseResu } from "~/resus/parseFromRequest";
+import { ResuRepo } from "~/resus/infra";
 
 export const meta: MetaFunction = () => {
   return [
@@ -21,15 +22,8 @@ export const meta: MetaFunction = () => {
 };
 
 export const loader = async ({ context }: LoaderFunctionArgs) => {
-  return json(
-    await context.db
-      .selectFrom("Resu")
-      .innerJoin("User", "User.id", "Resu.authorId")
-    .leftJoin("Thread", "Thread.id", "Resu.threadId")
-      .select(["Resu.id", "Resu.content", "Resu.createdAt", "User.username", "Thread.title as threadTitle", "Thread.id as threadId"])
-      .orderBy("Resu.createdAt desc")
-      .execute(),
-  );
+  const repo = new ResuRepo(context.db);
+  return json(await repo.fetchLatest());
 };
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
@@ -40,7 +34,9 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     return json({ error: parseResult.error });
   }
 
-  createResu(context.db, {
+  const repo = new ResuRepo(context.db);
+
+  await createResu(repo, {
     content: parseResult.content,
 
     authorId: parseResult.user.id,
@@ -63,9 +59,17 @@ export default function Index() {
       <ResuComposer></ResuComposer>
       <ResuList>
         <List list={data} fallback={() => <div>まだレスがありません</div>}>
-          {({ id, content, createdAt, username, threadTitle, threadId }) => (
+          {({ id, content, createdAt, authorName, threadTitle, threadId }) => (
             <li key={id}>
-              <ResuView {...{ content, createdAt, username, threadTitle, threadId }} />
+              <ResuView
+                {...{
+                  content,
+                  createdAt,
+                  username: authorName,
+                  threadTitle,
+                  threadId,
+                }}
+              />
             </li>
           )}
         </List>

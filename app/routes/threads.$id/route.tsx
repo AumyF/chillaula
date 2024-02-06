@@ -12,6 +12,7 @@ import { createResu } from "~/resus/create";
 import { ResuComposer } from "~/resus/composer";
 import { getAuthenticator } from "~/auth.server";
 import { PageHeading } from "~/components/page-heading";
+import { ResuRepo } from "~/resus/infra";
 
 export async function action({ request, params, context }: ActionFunctionArgs) {
   const { authenticator } = getAuthenticator(context.db);
@@ -26,10 +27,12 @@ export async function action({ request, params, context }: ActionFunctionArgs) {
     return json({ error: parseResult.error });
   }
 
-  await createResu(context.db, {
+  const repo = new ResuRepo(context.db);
+
+  await createResu(repo, {
     content: parseResult.content,
     authorId: parseResult.user.id,
-    threadId: id
+    threadId: id,
   });
 
   return json({ error: null });

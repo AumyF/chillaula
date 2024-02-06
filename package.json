@@ -31,7 +31,9 @@
     "remix": "^2.5.0",
     "remix-auth": "^3.6.0",
     "remix-auth-github": "^1.6.0",
-    "remix-auth-webauthn": "^0.1.0"
+    "remix-auth-webauthn": "^0.1.0",
+    "ulidx": "^2.2.1",
+    "valibot": "^0.28.0"
   },
   "devDependencies": {
     "@remix-run/dev": "^2.5.0",

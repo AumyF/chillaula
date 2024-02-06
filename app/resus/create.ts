@@ -1,20 +1,15 @@
-import { Kysely } from "kysely";
-import { DB } from "~/db/generated/types";
+import * as Domain from "./domain";
 
 export const createResu = async (
-  db: Kysely<DB>,
-  {
-    content,
-    authorId,
-    threadId,
-  }: {
-    content: string;
-    authorId: number;
-    threadId?: number;
-  },
+  repo: Domain.IResuRepo,
+  input: Domain.ResuInput,
 ) => {
-  return await db
-    .insertInto("Resu")
-    .values({ content, authorId, threadId })
-    .executeTakeFirst();
+  const result = Domain.make(input);
+
+  if (!result.success) {
+    throw new Error(result.issues.map((issue) => issue.reason).toString());
+  }
+  const resu = result.output;
+
+  await repo.save(resu);
 };

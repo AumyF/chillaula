@@ -64,7 +64,9 @@ export default function App() {
               <Link to="/login">Sign in / Sign up</Link>
             </header>
             <div className="flex gap-2">
-              <Link className="" to="/threads">Threads</Link>
+              <Link className="" to="/threads">
+                Threads
+              </Link>
             </div>
             <Outlet />
           </div>

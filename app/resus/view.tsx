@@ -36,7 +36,7 @@ export const ResuView: FC<Props> = ({
           {isHydrated &&
             Temporal.Now.zonedDateTimeISO()
               .since(at, { smallestUnit: "minute" })
-              .toLocaleString("ja-JP")}
+              .toString()}
         </time>
         に
         {threadId != null ? (

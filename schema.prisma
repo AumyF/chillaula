@@ -10,7 +10,7 @@ generator kysely {
 }
 
 model User {
-  id            Int             @id @default(autoincrement())
+  id            BigInt             @id @default(autoincrement())
   createdAt     DateTime        @default(now())
   username      String          @unique
   Authenticator Authenticator[]
@@ -34,7 +34,7 @@ model Authenticator {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
   User      User     @relation(fields: [userId], references: [id], onUpdate: NoAction, onDelete: NoAction)
-  userId    Int
+  userId    BigInt
 
   // https://remix.run/resources/remix-auth-webauthn-strategy#database
   credentialID         String
@@ -50,10 +50,10 @@ model Authenticator {
 
 /// ツイート的なやつ。文字数制限はとくにないと思う。それなりにリッチな表現をしたい
 model Resu {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
+  id        BigInt      @id @default(autoincrement())
+  createdAt DateTime
 
-  authorId Int
+  authorId BigInt
   author   User @relation(fields: [authorId], references: [id], onUpdate: NoAction, onDelete: NoAction)
 
   /// Markdownかなんか
@@ -64,7 +64,7 @@ model Resu {
   thread   Thread? @relation(fields: [threadId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   /// 既存レスを埋め込んで言及する感じ
-  quoteId  Int?
+  quoteId  BigInt?
   quote    Resu?  @relation("quote", fields: [quoteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   quotedBy Resu[] @relation("quote")
 
@@ -81,7 +81,7 @@ model Thread {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
 
-  authorId Int
+  authorId BigInt
   author   User @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   title String
@@ -101,7 +101,7 @@ model TagAttach {
   tag   Tag @relation(fields: [tagId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   threadId   Int?
-  resuId     Int?
+  resuId     BigInt?
   thread     Thread?   @relation(fields: [threadId], references: [id])
   resu       Resu?     @relation(fields: [resuId], references: [id])
 
