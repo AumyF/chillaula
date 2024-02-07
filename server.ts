@@ -6,6 +6,7 @@ import * as build from "@remix-run/dev/server-build";
 // @ts-expect-error
 import __STATIC_CONTENT_MANIFEST from "__STATIC_CONTENT_MANIFEST";
 import { connect } from "~/kysely";
+import { Logger, logger } from "~/logger";
 
 const MANIFEST = JSON.parse(__STATIC_CONTENT_MANIFEST);
 const handleRemixRequest = createRequestHandler(build, process.env.NODE_ENV);
@@ -13,6 +14,7 @@ const handleRemixRequest = createRequestHandler(build, process.env.NODE_ENV);
 if (process.env.NODE_ENV === "development") {
   logDevReady(build);
 }
+
 
 export default {
   async fetch(
@@ -46,16 +48,19 @@ export default {
       // No-op
     }
 
-    try {
-      const db = connect(env.DATABASE_URL);
-      const loadContext: AppLoadContext = {
-        env,
-        db,
-      };
-      return await handleRemixRequest(request, loadContext);
-    } catch (error) {
-      console.log(error);
-      return new Response("An unexpected error occurred", { status: 500 });
-    }
+
+    return await logger.region(async () => {
+      try {
+        const db = connect(env.DATABASE_URL);
+        const loadContext: AppLoadContext = {
+          env,
+          db,
+        };
+        return await handleRemixRequest(request, loadContext);
+      } catch (error) {
+        console.log(error);
+        return new Response("An unexpected error occurred", { status: 500 });
+      }
+    });
   },
 };
