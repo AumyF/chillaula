@@ -8,33 +8,48 @@ import { List } from "~/components/List";
 import { ResuList } from "~/resus/list";
 import { ResuView } from "~/resus/view";
 import { parseResu } from "~/resus/parseFromRequest";
-import { createResu } from "~/resus/create";
+import { createResu, createResuOnThread } from "~/resus/create";
 import { ResuComposer } from "~/resus/composer";
 import { getAuthenticator } from "~/auth.server";
 import { PageHeading } from "~/components/page-heading";
 import { ResuRepo } from "~/resus/infra";
+import { UserRepo } from "~/user/infra";
+import { AuthenticatorRepo } from "~/authenticator/infra";
+import { ThreadRepo } from "~/thread/infra";
 
 export async function action({ request, params, context }: ActionFunctionArgs) {
-  const { authenticator } = getAuthenticator(context.db);
+  try {
+    const { authenticator } = getAuthenticator({
+      userRepo: new UserRepo(context.db),
+      authRepo: new AuthenticatorRepo(context.db),
+    });
 
-  const id = Number.parseInt(params["id"] ?? "whoahaaaa");
-  if (Number.isNaN(id)) {
-    return json({ error: "Not found" }, 404);
+    const id = Number.parseInt(params["id"] ?? "whoahaaaa");
+    if (Number.isNaN(id)) {
+      return json({ error: "Not found" }, 404);
+    }
+
+    const user = await authenticator.isAuthenticated(request);
+    if (!user) {
+      return json({ _type: "error" as const, error: "login required" });
+    }
+
+    const fd = await request.formData();
+    const content = fd.get("content")?.toString();
+    if (!content) {
+      return json({ _type: "error" as const, error: "content empty" });
+    }
+
+    const threadRepo = new ThreadRepo(context.db);
+
+    const thread = await threadRepo.queryById(id);
+
+    const repo = new ResuRepo(context.db);
+
+    await createResuOnThread(repo, user, { content }, thread);
+  } catch (e) {
+    return json({ error: JSON.stringify(e) });
   }
-  const parseResult = await parseResu(authenticator, request);
-
-  if (parseResult._type === "error") {
-    return json({ error: parseResult.error });
-  }
-
-  const repo = new ResuRepo(context.db);
-
-  await createResu(repo, {
-    content: parseResult.content,
-    authorId: parseResult.user.id,
-    threadId: id,
-  });
-
   return json({ error: null });
 }
 

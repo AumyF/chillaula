@@ -17,6 +17,7 @@ export class ResuRepo implements IResuRepo {
         content: resu.content,
         // MySQLはISO8601をそのままでは解釈できない(？？？)
         createdAt: new Date(resu.createdAt.toString()),
+        threadId: resu.threadId,
       })
       .execute();
   }

@@ -15,7 +15,7 @@ model User {
   username      String          @unique
   Authenticator Authenticator[]
   invitation    Invitation      @relation(fields: [invitationId], references: [id], onUpdate: NoAction, onDelete: NoAction)
-  invitationId  Int             @unique
+  invitationId  BigInt             @unique
 
   resus     Resu[]
   threads   Thread[]
@@ -24,14 +24,14 @@ model User {
 }
 
 model Invitation {
-  id        Int      @id @default(autoincrement())
+  id        BigInt      @id @default(autoincrement())
   createdAt DateTime @default(now())
   code      String
   User      User?
 }
 
 model Authenticator {
-  id        Int      @id @default(autoincrement())
+  id        BigInt      @id @default(autoincrement())
   createdAt DateTime @default(now())
   User      User     @relation(fields: [userId], references: [id], onUpdate: NoAction, onDelete: NoAction)
   userId    BigInt

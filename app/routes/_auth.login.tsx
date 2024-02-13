@@ -3,17 +3,31 @@ import { Form, Link, useActionData, useLoaderData } from "@remix-run/react";
 import { handleFormSubmit } from "remix-auth-webauthn/build/handleFormSubmit.js";
 import { getAuthenticator } from "~/auth.server";
 import { sessionStorage } from "~/auth/session.server";
+import { AuthenticatorRepo } from "~/authenticator/infra";
 import { Button } from "~/components/button";
+import { InvitationRepo } from "~/invitation/infra";
+import { UserRepo } from "~/user/infra";
+import { signup } from "~/user/signup";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
-  const { webAuthnStrategy, authenticator } = getAuthenticator(context.db);
+  const userRepo = new UserRepo(context.db);
+  const authRepo = new AuthenticatorRepo(context.db);
+  const { webAuthnStrategy, authenticator } = getAuthenticator({
+    authRepo,
+    userRepo,
+  });
   const user = await authenticator.isAuthenticated(request);
 
   return webAuthnStrategy.generateOptions(request, sessionStorage, user);
 };
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
-  const { authenticator } = getAuthenticator(context.db);
+  const userRepo = new UserRepo(context.db);
+  const authRepo = new AuthenticatorRepo(context.db);
+
+  const { authenticator } = getAuthenticator({ userRepo, authRepo });
+  const invitationRepo = new InvitationRepo(context.db);
+
   try {
     const request2 = request.clone();
     const user = await authenticator.isAuthenticated(
@@ -40,33 +54,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
         throw new Error("Invitation code required");
       }
 
-      // invite codeの存在チェック
-      const invitation = await context.db
-        .selectFrom("Invitation")
-        .selectAll()
-        .where("code", "=", code)
-        .executeTakeFirst();
-
-      if (!invitation) {
-        throw new Error("Invitation code invalid");
-      }
-
-      // invite codeが未使用かチェック
-      const invitedUser = await context.db
-        .selectFrom("User")
-        .selectAll()
-        .where("User.invitationId", "=", invitation.id)
-        .executeTakeFirst();
-
-      if (invitedUser) {
-        throw new Error("Invitation code already used");
-      }
-
-      // ユーザーを作る
-      await context.db
-        .insertInto("User")
-        .values({ username, invitationId: invitation.id })
-        .executeTakeFirst();
+      signup(userRepo, invitationRepo, { username, code });
 
       await authenticator.authenticate("webauthn", request2, {
         successRedirect: "/",

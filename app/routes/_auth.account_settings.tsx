@@ -3,11 +3,14 @@ import { Form, useLoaderData, useRouteLoaderData } from "@remix-run/react";
 import { handleFormSubmit } from "remix-auth-webauthn/build/handleFormSubmit.js";
 import { getAuthenticator } from "~/auth.server";
 import type { loader as optionLoader } from "./_auth";
+import { UserRepo } from "~/user/infra";
+import { AuthenticatorRepo } from "~/authenticator/infra";
 
 export async function loader({ request, context }: LoaderFunctionArgs) {
-  const user = await getAuthenticator(context.db).authenticator.isAuthenticated(
-    request,
-  );
+  const user = await getAuthenticator({
+    userRepo: new UserRepo(context.db),
+    authRepo: new AuthenticatorRepo(context.db),
+  }).authenticator.isAuthenticated(request);
 
   if (!user) {
     return redirect("/login");

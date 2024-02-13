@@ -6,7 +6,9 @@ import {
 } from "@remix-run/cloudflare";
 import { Form, Link, useLoaderData } from "@remix-run/react";
 import { getAuthenticator } from "~/auth.server";
+import { AuthenticatorRepo } from "~/authenticator/infra";
 import { List } from "~/components/List";
+import { UserRepo } from "~/user/infra";
 
 export async function loader({ context }: LoaderFunctionArgs) {
   const bookmarks = await context.db
@@ -20,7 +22,11 @@ export async function loader({ context }: LoaderFunctionArgs) {
 }
 
 export async function action({ request, context }: ActionFunctionArgs) {
-  const { authenticator } = getAuthenticator(context.db);
+  const { authenticator } = 
+  getAuthenticator({
+    userRepo: new UserRepo(context.db),
+    authRepo: new AuthenticatorRepo(context.db),
+  });
   const user = await authenticator.isAuthenticated(request);
   const formData = await request.formData();
 

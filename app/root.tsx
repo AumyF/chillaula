@@ -14,6 +14,8 @@ import {
 import styles from "./tailwind.css";
 import { getAuthenticator } from "./auth.server";
 import { sessionStorage } from "./auth/session.server";
+import { UserRepo } from "./user/infra";
+import { AuthenticatorRepo } from "./authenticator/infra";
 
 export const links: LinksFunction = () => [
   ...(cssBundleHref ? [{ rel: "stylesheet", href: cssBundleHref }] : []),
@@ -21,9 +23,13 @@ export const links: LinksFunction = () => [
 ];
 
 export async function loader({ context, request }: LoaderFunctionArgs) {
-  const user = await getAuthenticator(context.db).authenticator.isAuthenticated(
-    request,
-  );
+  const userRepo = new UserRepo(context.db);
+  const authRepo = new AuthenticatorRepo(context.db);
+  const user = await getAuthenticator({
+    userRepo,
+    authRepo,
+  }).authenticator.isAuthenticated(request);
+
   if (!user) {
     return json({ user: null });
   }

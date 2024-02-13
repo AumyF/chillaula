@@ -13,6 +13,8 @@ import { ResuComposer } from "~/resus/composer";
 import { createResu } from "~/resus/create";
 import { parseResu } from "~/resus/parseFromRequest";
 import { ResuRepo } from "~/resus/infra";
+import { UserRepo } from "~/user/infra";
+import { AuthenticatorRepo } from "~/authenticator/infra";
 
 export const meta: MetaFunction = () => {
   return [
@@ -27,7 +29,10 @@ export const loader = async ({ context }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
-  const { authenticator } = getAuthenticator(context.db);
+  const { authenticator } = getAuthenticator({
+    userRepo: new UserRepo(context.db),
+    authRepo: new AuthenticatorRepo(context.db),
+  });
   const parseResult = await parseResu(authenticator, request);
 
   if (parseResult._type === "error") {
