@@ -28,6 +28,7 @@
     "prisma-kysely": "^1.7.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-markdown": "^9.0.1",
     "remix": "^2.5.0",
     "remix-auth": "^3.6.0",
     "remix-auth-github": "^1.6.0",

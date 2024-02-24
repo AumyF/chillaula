@@ -15,6 +15,7 @@ import { parseResu } from "~/resus/parseFromRequest";
 import { ResuRepo } from "~/resus/infra";
 import { UserRepo } from "~/user/infra";
 import { AuthenticatorRepo } from "~/authenticator/infra";
+import Markdown from "react-markdown";
 
 export const meta: MetaFunction = () => {
   return [
@@ -68,7 +69,7 @@ export default function Index() {
             <li key={id}>
               <ResuView
                 {...{
-                  content,
+                  content: <Markdown>{content}</Markdown>,
                   createdAt,
                   username: authorName,
                   threadTitle,

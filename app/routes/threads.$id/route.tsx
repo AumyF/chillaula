@@ -16,6 +16,7 @@ import { ResuRepo } from "~/resus/infra";
 import { UserRepo } from "~/user/infra";
 import { AuthenticatorRepo } from "~/authenticator/infra";
 import { ThreadRepo } from "~/thread/infra";
+import Markdown from "react-markdown";
 
 export async function action({ request, params, context }: ActionFunctionArgs) {
   try {
@@ -105,7 +106,26 @@ export default function ThreadPage() {
         >
           {({ id, content, createdAt, username }) => (
             <li key={id}>
-              <ResuView {...{ content, createdAt, username }} />
+              <ResuView
+                {...{
+                  content: (
+                    <Markdown
+                      components={{
+                        ul: (props) => (
+                          <ul {...props} className="list-disc pl-6"></ul>
+                        ),
+                        ol: (props) => (
+                          <ol {...props} className="list-decimal pl-6"></ol>
+                        ),
+                      }}
+                    >
+                      {content}
+                    </Markdown>
+                  ),
+                  createdAt,
+                  username,
+                }}
+              />
             </li>
           )}
         </List>
