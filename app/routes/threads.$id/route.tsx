@@ -61,7 +61,7 @@ export async function loader({ params, context }: LoaderFunctionArgs) {
   }
   const bookmark = await context.db
     .selectFrom("Thread")
-    .select(["Thread.id", "Thread.title"])
+    .select(["Thread.id", "Thread.title", "Thread.createdAt"])
     .where("Thread.id", "=", id)
     .executeTakeFirst();
 
@@ -97,6 +97,9 @@ export default function ThreadPage() {
     <div className="flex flex-col gap-4">
       <div className="bg-white p-4 rounded-2xl backdrop-blur flex flex-col gap-2">
         <PageHeading>{loaderData.bookmark.title}</PageHeading>
+        <div className="text-slate-600">
+          {loaderData.bookmark.createdAt}に作成
+        </div>
       </div>
 
       <ResuList>
