@@ -27,6 +27,8 @@ export class ThreadRepo implements IThreadRepo {
         "id",
         "title",
         "createdAt",
+        "closed",
+        "private",
         typesafeJsonObjectFrom(
           selectFrom("User")
             .select(["id", "username", "createdAt", "invitationId"])

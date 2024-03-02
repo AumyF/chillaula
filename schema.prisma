@@ -10,28 +10,28 @@ generator kysely {
 }
 
 model User {
-  id            BigInt             @id @default(autoincrement())
+  id            BigInt          @id @default(autoincrement())
   createdAt     DateTime        @default(now())
   username      String          @unique
   Authenticator Authenticator[]
   invitation    Invitation      @relation(fields: [invitationId], references: [id], onUpdate: NoAction, onDelete: NoAction)
-  invitationId  BigInt             @unique
+  invitationId  BigInt          @unique
 
-  resus     Resu[]
-  threads   Thread[]
+  resus   Resu[]
+  threads Thread[]
 
   @@index([invitationId])
 }
 
 model Invitation {
-  id        BigInt      @id @default(autoincrement())
+  id        BigInt   @id @default(autoincrement())
   createdAt DateTime @default(now())
   code      String
   User      User?
 }
 
 model Authenticator {
-  id        BigInt      @id @default(autoincrement())
+  id        BigInt   @id @default(autoincrement())
   createdAt DateTime @default(now())
   User      User     @relation(fields: [userId], references: [id], onUpdate: NoAction, onDelete: NoAction)
   userId    BigInt
@@ -50,11 +50,11 @@ model Authenticator {
 
 /// ツイート的なやつ。文字数制限はとくにないと思う。それなりにリッチな表現をしたい
 model Resu {
-  id        BigInt      @id @default(autoincrement())
+  id        BigInt   @id @default(autoincrement())
   createdAt DateTime
 
   authorId BigInt
-  author   User @relation(fields: [authorId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  author   User   @relation(fields: [authorId], references: [id], onUpdate: NoAction, onDelete: NoAction)
 
   /// Markdownかなんか
   content String
@@ -65,8 +65,8 @@ model Resu {
 
   /// 既存レスを埋め込んで言及する感じ
   quoteId  BigInt?
-  quote    Resu?  @relation("quote", fields: [quoteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  quotedBy Resu[] @relation("quote")
+  quote    Resu?   @relation("quote", fields: [quoteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  quotedBy Resu[]  @relation("quote")
 
   /// コレクションだけでなくレス自体もタグを貼れる
   TagAttach TagAttach[]
@@ -82,15 +82,16 @@ model Thread {
   createdAt DateTime @default(now())
 
   authorId BigInt
-  author   User @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  author   User   @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   title String
 
-  closed Boolean @default(false)
+  closed  Boolean @default(false)
+  private Boolean @default(true)
 
   resus Resu[]
 
-  TagAttach    TagAttach[]
+  TagAttach TagAttach[]
 
   @@index([authorId])
 }
@@ -100,10 +101,10 @@ model TagAttach {
   tagId Int
   tag   Tag @relation(fields: [tagId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  threadId   Int?
-  resuId     BigInt?
-  thread     Thread?   @relation(fields: [threadId], references: [id])
-  resu       Resu?     @relation(fields: [resuId], references: [id])
+  threadId Int?
+  resuId   BigInt?
+  thread   Thread? @relation(fields: [threadId], references: [id])
+  resu     Resu?   @relation(fields: [resuId], references: [id])
 
   @@unique([tagId, threadId, resuId])
   @@index([threadId])
